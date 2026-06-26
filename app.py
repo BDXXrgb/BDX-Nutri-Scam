@@ -28,3 +28,19 @@ def scan():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+import requests
+
+def get_product_info(barcode):
+    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    response = requests.get(url)
+    data = response.json()
+    
+    if data['status'] == 1:
+        product = data['product']
+        return {
+            "name": product.get('product_name', 'Inconnu'),
+            "nutriscore": product.get('nutriscore_grade', 'Non disponible'),
+            "ingredients": product.get('ingredients_text', 'Non disponible')
+        }
+    return None
