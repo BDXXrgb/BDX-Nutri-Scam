@@ -1,3 +1,5 @@
+alert("Le script scanner.js est bien chargé !");
+
 // Initialisation propre du scanner
 const html5QrCode = new Html5Qrcode("reader");
 
