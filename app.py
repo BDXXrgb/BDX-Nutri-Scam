@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, jsonify
 import requests
+from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 
@@ -7,40 +7,23 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.route('/scan', methods=['POST'])
-def scan():
-    data = request.json
-    code = data.get('code')
-    url = f"https://world.openfoodfacts.org/api/v0/product/{code}.json"
-    
+@app.route('/get_product_info/<barcode>')
+def get_product_info(barcode):
+    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
     try:
-        reponse = requests.get(url).json()
-        if reponse.get("status") == 1:
-            prod = reponse["product"]
+        response = requests.get(url)
+        data = response.json()
+        
+        if data.get('status') == 1:
+            product = data.get('product', {})
             return jsonify({
-                "nom": prod.get("product_name", "Produit inconnu"),
-                "score": prod.get("nutriscore_grade", "Non classé").upper(),
-                "ingredients": prod.get("ingredients_text", "Ingrédients non listés")
+                "name": product.get('product_name', 'Produit inconnu'),
+                "nutriscore": str(product.get('nutriscore_grade', 'n/a')).upper(),
+                "ingredients": product.get('ingredients_text', 'Ingrédients non disponibles')
             })
-        return jsonify({"error": "Produit introuvable"})
+        return jsonify({"error": "Produit non trouvé"}), 404
     except:
-        return jsonify({"error": "Erreur de connexion"})
+        return jsonify({"error": "Erreur serveur"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-import requests
-
-def get_product_info(barcode):
-    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-    response = requests.get(url)
-    data = response.json()
-    
-    if data['status'] == 1:
-        product = data['product']
-        return {
-            "name": product.get('product_name', 'Inconnu'),
-            "nutriscore": product.get('nutriscore_grade', 'Non disponible'),
-            "ingredients": product.get('ingredients_text', 'Non disponible')
-        }
-    return None
