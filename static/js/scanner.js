@@ -1,17 +1,20 @@
 function onScanSuccess(decodedText, decodedResult) {
-    // Quand un code est scanné, on affiche le résultat
     console.log(`Code scanné : ${decodedText}`);
-    
-    // Pour l'instant, on affiche une alerte pour confirmer que ça marche
     alert("Produit scanné : " + decodedText);
-    
-    // Ici, plus tard, on enverra ce code à ton serveur Flask
-    // fetch('/get_info?barcode=' + decodedText) ...
+    // Plus tard, on pourra envoyer ça au serveur avec : 
+    // window.location.href = "/product/" + decodedText;
 }
 
+// Configuration pour lire spécifiquement les codes-barres (EAN_13)
+let config = {
+    fps: 10,
+    qrbox: { width: 250, height: 150 },
+    rememberLastUsedCamera: true,
+    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+    formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ]
+};
+
 let html5QrcodeScanner = new Html5QrcodeScanner(
-    "reader", 
-    { fps: 10, qrbox: { width: 250, height: 150 } },
-    /* verbose= */ false);
+    "reader", config, /* verbose= */ false);
 
 html5QrcodeScanner.render(onScanSuccess);
