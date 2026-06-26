@@ -1,20 +1,27 @@
-function onScanSuccess(decodedText, decodedResult) {
-    console.log(`Code scanné : ${decodedText}`);
-    alert("Produit scanné : " + decodedText);
-    // Plus tard, on pourra envoyer ça au serveur avec : 
-    // window.location.href = "/product/" + decodedText;
-}
+// Initialisation du scanner avec support explicite pour les codes-barres
+const html5QrCode = new Html5Qrcode("reader");
 
-// Configuration pour lire spécifiquement les codes-barres (EAN_13)
-let config = {
-    fps: 10,
+const config = { 
+    fps: 10, 
     qrbox: { width: 250, height: 150 },
-    rememberLastUsedCamera: true,
-    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-    formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8 ]
+    // On force la recherche des formats EAN 13 et 8 (ceux des produits)
+    formatsToSupport: [ 
+        Html5QrcodeSupportedFormats.EAN_13, 
+        Html5QrcodeSupportedFormats.EAN_8 
+    ]
 };
 
-let html5QrcodeScanner = new Html5QrcodeScanner(
-    "reader", config, /* verbose= */ false);
-
-html5QrcodeScanner.render(onScanSuccess);
+html5QrCode.start(
+    { facingMode: "environment" }, 
+    config,
+    (decodedText) => {
+        // Succès : on a trouvé un numéro !
+        alert("Code-barres trouvé : " + decodedText);
+        // Ici tu pourras rediriger vers ton API plus tard
+    },
+    (errorMessage) => {
+        // On ignore les erreurs de scan répétitives pour ne pas saturer l'écran
+    }
+).catch((err) => {
+    console.error("Erreur d'initialisation du scanner : ", err);
+});
