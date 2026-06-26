@@ -2,17 +2,25 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BDX Nutri Scan</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; }
-        #reader { width: 100%; max-width: 500px; margin: auto; }
-        #resultat { margin-top: 20px; padding: 20px; border: 1px solid #ccc; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; text-align: center; padding: 20px; }
+        h1 { color: #2c3e50; font-size: 2em; }
+        #reader { width: 100%; max-width: 500px; margin: 20px auto; border: 3px solid #27ae60; border-radius: 10px; }
+        #resultat { 
+            margin-top: 20px; padding: 25px; border-radius: 15px; 
+            background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            font-size: 1.2em; color: #34495e;
+        }
+        .error { color: #e74c3c; font-weight: bold; }
+        .success { color: #27ae60; }
     </style>
 </head>
 <body>
-    <h1>BDX Nutri Scan</h1>
+    <h1>🍏 BDX Nutri Scan</h1>
     <div id="reader"></div>
-    <div id="resultat">Scannez un code-barres...</div>
+    <div id="resultat">Appuyez sur "Autoriser la caméra" et scannez un code-barres...</div>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="/static/js/scanner.js"></script>
