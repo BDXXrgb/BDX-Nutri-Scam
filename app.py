@@ -9,21 +9,23 @@ def index():
 
 @app.route('/get_product_info/<barcode>')
 def get_product_info(barcode):
-    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    # On utilise l'API française pour avoir plus de chances de trouver le produit
+    url = f"https://fr.openfoodfacts.org/api/v0/product/{barcode}.json"
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         data = response.json()
         
         if data.get('status') == 1:
             product = data.get('product', {})
             return jsonify({
-                "name": product.get('product_name', 'Produit inconnu'),
-                "nutriscore": str(product.get('nutriscore_grade', 'n/a')).upper(),
-                "ingredients": product.get('ingredients_text', 'Ingrédients non disponibles')
+                "name": product.get('product_name', 'Produit sans nom'),
+                "nutriscore": str(product.get('nutriscore_grade', 'inconnu')).upper(),
+                "ingredients": product.get('ingredients_text', 'Ingrédients non listés')
             })
-        return jsonify({"error": "Produit non trouvé"}), 404
-    except:
-        return jsonify({"error": "Erreur serveur"}), 500
+        else:
+            return jsonify({"error": "Produit introuvable dans la base de données."}), 404
+    except Exception as e:
+        return jsonify({"error": "Erreur de communication avec le serveur."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
