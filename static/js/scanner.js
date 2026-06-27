@@ -6,27 +6,35 @@ window.addEventListener('load', function () {
         { fps: 10, qrbox: 250 },
         (decodedText) => {
             html5QrCode.stop();
-            const resDiv = document.getElementById('resultat');
-            resDiv.innerHTML = "📡 Envoi du code au serveur : " + decodedText;
+            document.getElementById('resultat').innerHTML = "⏳ Recherche...";
 
             fetch('/get_product_info/' + decodedText)
-                .then(res => {
-                    if (!res.ok) throw new Error("Erreur HTTP " + res.status);
-                    return res.json();
-                })
+                .then(res => res.json())
                 .then(data => {
-                    resDiv.innerHTML = `
-                        <h2>${data.name}</h2>
-                        <p><strong>Nutri-Score:</strong> ${data.nutriscore}</p>
-                        <p><strong>Ingrédients:</strong> ${data.ingredients}</p>
-                        <button onclick="location.reload()">Scanner un autre</button>
-                    `;
+                    if (data.error === "INCONNU") {
+                        // Si inconnu, on propose d'ajouter
+                        const nom = prompt("Produit inconnu. Entre le nom :");
+                        const ing = prompt("Entre les ingrédients :");
+                        if (nom && ing) {
+                            fetch('/add_product', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ barcode: decodedText, name: nom, ingredients: ing })
+                            }).then(() => alert("Merci ! Produit enregistré."));
+                        }
+                    } else if (data.error) {
+                        document.getElementById('resultat').innerHTML = "❌ " + data.error;
+                    } else {
+                        document.getElementById('resultat').innerHTML = `
+                            <h2>${data.name}</h2>
+                            <p><strong>Ingrédients :</strong> ${data.ingredients}</p>
+                            <button onclick="location.reload()">Scanner un autre</button>
+                        `;
+                    }
                 })
-                .catch(err => {
-                    resDiv.innerHTML = "❌ Erreur : " + err.message + "<br>Vérifie les logs sur Render.";
+                .catch(() => {
+                    document.getElementById('resultat').innerHTML = "❌ Erreur serveur.";
                 });
         }
-    ).catch(err => {
-        document.getElementById('resultat').innerHTML = "Caméra bloquée : " + err;
-    });
+    );
 });
