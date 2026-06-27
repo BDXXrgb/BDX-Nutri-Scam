@@ -1,46 +1,37 @@
 import requests
-import json
-import os
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template
 
-app = Flask(__name__)
-DB_FILE = 'ma_base.json'
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
-def load_db():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, 'r') as f: return json.load(f)
-    return {}
-
-@app.route('/add_product', methods=['POST'])
-def add_product():
-    data = request.json
-    db = load_db()
-    db[data['barcode']] = {
-        "name": data['name'],
-        "ingredients": data['ingredients'],
-        "nutriscore": "N/A"
-    }
-    with open(DB_FILE, 'w') as f: json.dump(db, f)
-    return jsonify({"status": "success"})
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/get_product_info/<barcode>')
 def get_product_info(barcode):
-    db = load_db()
-    if barcode in db: return jsonify(db[barcode])
-
+    # Utilisation de l'API mondiale pour plus de résultats
     url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
     try:
-        response = requests.get(url, timeout=5)
+        # On ajoute un timeout pour éviter que le serveur ne reste bloqué
+        response = requests.get(url, timeout=10)
+        response.raise_for_status() # Lève une erreur si la requête échoue
         data = response.json()
+        
         if data.get('status') == 1:
-            prod = data.get('product', {})
+            product = data.get('product', {})
             return jsonify({
-                "name": prod.get('product_name', 'Inconnu'),
-                "nutriscore": str(prod.get('nutriscore_grade', 'n/a')).upper(),
-                "ingredients": prod.get('ingredients_text_fr') or "Non listé"
+                "name": product.get('product_name', 'Produit inconnu'),
+                "nutriscore": str(product.get('nutriscore_grade', 'N/A')).upper(),
+                "ingredients": product.get('ingredients_text_fr') or "Ingrédients non listés"
             })
-        return jsonify({"error": "INCONNU"}), 404
-    except: return jsonify({"error": "Serveur HS"}), 500
+        else:
+            return jsonify({"error": "Produit non trouvé"}), 404
+            
+    except Exception as e:
+        # CETTE LIGNE EST TRÈS IMPORTANTE
+        # Elle va afficher l'erreur réelle dans tes logs Render
+        print(f"DEBUG_ERREUR: {e}")
+        return jsonify({"error": "Erreur interne"}), 500
 
 if __name__ == '__main__':
     app.run()
