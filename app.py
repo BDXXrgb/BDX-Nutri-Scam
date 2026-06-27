@@ -1,39 +1,44 @@
 import requests
+import json
+import os
 from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
+DB_FILE = 'ma_base.json'
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Charge la base locale au démarrage
+def load_db():
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, 'r') as f: return json.load(f)
+    return {}
+
+# Sauvegarde un nouveau produit
+def save_to_db(barcode, data):
+    db = load_db()
+    db[barcode] = data
+    with open(DB_FILE, 'w') as f: json.dump(db, f)
 
 @app.route('/get_product_info/<barcode>')
 def get_product_info(barcode):
-    url = f"https://fr.openfoodfacts.org/api/v0/product/{barcode}.json"
-    try:
-        # On ajoute un User-Agent car OpenFoodFacts le demande
-        headers = {'User-Agent': 'BDXNutriScan/1.0'}
-        response = requests.get(url, timeout=5, headers=headers)
-        
-        # Vérification si la requête a réussi
-        response.raise_for_status() 
-        data = response.json()
-        
-        if data.get('status') == 1:
-            product = data.get('product', {})
-            return jsonify({
-                "name": product.get('product_name', 'Produit sans nom'),
-                "nutriscore": str(product.get('nutriscore_grade', 'inconnu')).upper(),
-                "ingredients": product.get('ingredients_text_fr') or "Non listé"
-            })
-        else:
-            return jsonify({"error": "Produit non trouvé en base"}), 404
-            
-    except Exception as e:
-        # C'est cette ligne qui est vitale ! 
-        # Elle va afficher la VRAIE erreur dans tes logs Render.
-        print(f"DEBUG ERREUR: {str(e)}") 
-        return jsonify({"error": "Erreur serveur interne"}), 500
+    db = load_db()
+    # 1. Si on connaît déjà le produit, on le renvoie immédiatement
+    if barcode in db: return jsonify(db[barcode])
 
-if __name__ == '__main__':
-    app.run()
+    # 2. Sinon, on interroge Open Food Facts
+    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    try:
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        if data.get('status') == 1:
+            prod = data.get('product', {})
+            info = {
+                "name": prod.get('product_name', 'Inconnu'),
+                "nutriscore": str(prod.get('nutriscore_grade', 'n/a')).upper(),
+                "ingredients": prod.get('ingredients_text_fr') or "Non listé"
+            }
+            # On enregistre pour la prochaine fois
+            save_to_db(barcode, info)
+            return jsonify(info)
+        return jsonify({"error": "Produit introuvable"}), 404
+    except:
+        return jsonify({"error": "Erreur serveur"}), 500
